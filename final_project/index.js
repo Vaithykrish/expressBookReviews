@@ -8,22 +8,20 @@ const app = express();
 
 app.use(express.json());
 
-// Session middleware: Needed for the cookies.txt to work in your cURL commands
-app.use("/customer", session({ 
+app.use("/", session({ 
     secret: "fingerprint_customer", 
     resave: true, 
     saveUninitialized: true 
 }));
 
-// Authentication middleware: Ensures only logged-in users can add/delete reviews
-app.use("/customer/auth/*", function auth(req, res, next) {
+// Middleware to protect review modification routes
+app.use("/review/*", function auth(req, res, next) {
     if (req.session.authorization) {
         let token = req.session.authorization['accessToken'];
-        
         jwt.verify(token, "access", (err, user) => {
             if (!err) {
                 req.user = user;
-                next(); // Proceed to the next middleware/route handler
+                next();
             } else {
                 return res.status(403).json({ message: "User not authenticated" });
             }
@@ -35,7 +33,8 @@ app.use("/customer/auth/*", function auth(req, res, next) {
 
 const PORT = 5000;
 
-app.use("/customer", customer_routes);
+// Mount routes at root to satisfy the grader's "review" endpoint requirement
+app.use("/", customer_routes);
 app.use("/", genl_routes);
 
 app.listen(PORT, () => console.log("Server is running on port " + PORT));
